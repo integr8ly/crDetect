@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/integreatly/crDetect/pkg/crDetect"
+	"github.com/integr8ly/crDetect/pkg/crDetect"
 )
 
 func main() {
