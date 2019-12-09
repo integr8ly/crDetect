@@ -1,5 +1,4 @@
-# Other contants
-PKG=github.com/integreatly/crdetect
+PKG=github.com/integr8ly/crdetect
 NAME=crdetect
 VERSION=v0.1.0
 
