@@ -1,4 +1,4 @@
-module github.com/integreatly/crDetect
+module github.com/integr8ly/crDetect
 
 go 1.13
 
