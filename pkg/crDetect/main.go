@@ -66,12 +66,9 @@ func (b *Background) resourceExists(dc discovery.DiscoveryInterface, apiGroupVer
 	if err != nil {
 		return false, err
 	}
-	logrus.Infof("apiLists: %+v", apiLists)
 	for _, apiList := range apiLists {
-		logrus.Infof("%s ?? %s", apiList.GroupVersion, apiGroupVersion)
 		if apiList.GroupVersion == apiGroupVersion {
 			for _, r := range apiList.APIResources {
-				logrus.Infof("%s ?? %s", r.Kind, kind)
 				if r.Kind == kind {
 					return true, nil
 				}
