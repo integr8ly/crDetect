@@ -1,7 +1,6 @@
 package crDetect
 
 import (
-	"github.com/sirupsen/logrus"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -18,11 +17,15 @@ type Background struct {
 
 
 // New creates a new auto-detect runner
-func NewAutoDetect(dc discovery.DiscoveryInterface, CRDs []runtime.Object) (*Background, error) {
+func NewAutoDetect(dc discovery.DiscoveryInterface) (*Background, error) {
 	// Create a new channel that GVK type will be sent down
 	subChan := make(chan schema.GroupVersionKind, 1)
 
-	return &Background{dc: dc, SubscriptionChannel: subChan, crds:CRDs}, nil
+	return &Background{dc: dc, SubscriptionChannel: subChan, crds:[]runtime.Object{}}, nil
+}
+
+func (b *Background) AddCRD(crd runtime.Object) err {
+	b.crds = append(b.crds, crd)
 }
 
 // Start initializes the auto-detection process that runs in the background
@@ -46,10 +49,8 @@ func (b *Background) Stop() {
 }
 
 func (b *Background) autoDetectCapabilities() {
-	logrus.Infof("detecting")
 	for _, crd := range b.crds {
 		crdgvk := crd.GetObjectKind().GroupVersionKind()
-		logrus.Infof("looking for %s", crdgvk.String())
 		resourceExists, _ := b.resourceExists(b.dc, crdgvk.GroupVersion().String(), crdgvk.Kind)
 		if resourceExists {
 			stateManager := GetStateManager()
