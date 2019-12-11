@@ -24,7 +24,7 @@ func NewAutoDetect(dc discovery.DiscoveryInterface) (*Background, error) {
 	return &Background{dc: dc, SubscriptionChannel: subChan, crds:[]runtime.Object{}}, nil
 }
 
-func (b *Background) AddCRD(crd runtime.Object) err {
+func (b *Background) AddCRD(crd runtime.Object) {
 	b.crds = append(b.crds, crd)
 }
 
