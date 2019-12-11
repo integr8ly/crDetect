@@ -7,62 +7,62 @@ import (
 	"time"
 )
 
-// Background represents a procedure that runs in the background, periodically auto-detecting features
-type Background struct {
+// Detector represents a procedure that runs in the background, periodically auto-detecting features
+type Detector struct {
 	dc                  discovery.DiscoveryInterface
 	ticker              *time.Ticker
 	SubscriptionChannel chan schema.GroupVersionKind
-	crds 				[]runtime.Object
+	crds 				map[runtime.Object]trigger
 }
 
+type trigger func(runtime.Object)
 
 // New creates a new auto-detect runner
-func NewAutoDetect(dc discovery.DiscoveryInterface) (*Background, error) {
+func NewAutoDetect(dc discovery.DiscoveryInterface) (*Detector, error) {
 	// Create a new channel that GVK type will be sent down
 	subChan := make(chan schema.GroupVersionKind, 1)
 
-	return &Background{dc: dc, SubscriptionChannel: subChan, crds:[]runtime.Object{}}, nil
+	return &Detector{dc: dc, SubscriptionChannel: subChan, crds:map[runtime.Object]trigger{}}, nil
 }
 
-func (b *Background) AddCRD(crd runtime.Object) {
-	b.crds = append(b.crds, crd)
+func (d *Detector) AddCRDTrigger(crd runtime.Object, trigger trigger) {
+	d.crds[crd] = trigger
 }
 
 // Start initializes the auto-detection process that runs in the background
-func (b *Background) Start(interval time.Duration) {
+func (d *Detector) Start(interval time.Duration) {
 	// periodically attempts to auto detect all the capabilities for this operator
-	b.ticker = time.NewTicker(interval * time.Second)
+	d.ticker = time.NewTicker(interval * time.Second)
 
 	go func() {
-		b.autoDetectCapabilities()
+		d.autoDetectCapabilities()
 
-		for range b.ticker.C {
-			b.autoDetectCapabilities()
+		for range d.ticker.C {
+			d.autoDetectCapabilities()
 		}
 	}()
 }
 
 // Stop causes the background process to stop auto detecting capabilities
-func (b *Background) Stop() {
-	b.ticker.Stop()
-	close(b.SubscriptionChannel)
+func (d *Detector) Stop() {
+	d.ticker.Stop()
+	close(d.SubscriptionChannel)
 }
 
-func (b *Background) autoDetectCapabilities() {
-	for _, crd := range b.crds {
+func (d *Detector) autoDetectCapabilities() {
+	for crd, trigger := range d.crds {
 		crdgvk := crd.GetObjectKind().GroupVersionKind()
-		resourceExists, _ := b.resourceExists(b.dc, crdgvk.GroupVersion().String(), crdgvk.Kind)
+		resourceExists, _ := d.resourceExists(d.dc, crdgvk.GroupVersion().String(), crdgvk.Kind)
 		if resourceExists {
 			stateManager := GetStateManager()
 			stateManager.SetState(crdgvk.Kind, true)
-
-			b.SubscriptionChannel <- crdgvk.GroupVersion().WithKind(crdgvk.Kind)
+			trigger(crd)
 		}
 	}
 }
 
 //copied from operator-sdk to avoid pulling in thousands of files in imports
-func (b *Background) resourceExists(dc discovery.DiscoveryInterface, apiGroupVersion, kind string) (bool, error) {
+func (d *Detector) resourceExists(dc discovery.DiscoveryInterface, apiGroupVersion, kind string) (bool, error) {
 	apiLists, err := dc.ServerResources()
 	if err != nil {
 		return false, err
