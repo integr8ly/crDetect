@@ -51,12 +51,14 @@ func (d *Detector) Stop() {
 
 func (d *Detector) autoDetectCapabilities() {
 	for crd, trigger := range d.crds {
-		crdgvk := crd.GetObjectKind().GroupVersionKind()
-		resourceExists, _ := d.resourceExists(d.dc, crdgvk.GroupVersion().String(), crdgvk.Kind)
+		crdGVK := crd.GetObjectKind().GroupVersionKind()
+		resourceExists, _ := d.resourceExists(d.dc, crdGVK.GroupVersion().String(), crdGVK.Kind)
 		if resourceExists {
 			stateManager := GetStateManager()
-			stateManager.SetState(crdgvk.Kind, true)
-			trigger(crd)
+			if stateManager.GetState(crdGVK.Kind) != true {
+				stateManager.SetState(crdGVK.Kind, true)
+				trigger(crd)
+			}
 		}
 	}
 }
